@@ -55,14 +55,6 @@ def _read_input_file(input_file_path: pathlib.Path) -> list[Package]:
         if lst is None:
             lst = []
         print("load input file:", input_file_path)
-    # NOTE: メンテナンス用
-    # このリポジトリを対象にしている場合は、メンテナンス用のJSONを読み取る
-    if pathlib.Path(INPUT_FILE_PATH) == pathlib.Path(input_file_path):
-        with open(META_INPUT_FILE_PATH, mode="r", encoding=ENCODING) as f:
-            meta_lst = json.load(f)
-            if meta_lst is None:
-                meta_lst = []
-            lst = lst + meta_lst
     return [Package.from_dict(d) for d in lst]
 
 
@@ -173,6 +165,10 @@ def gen_license_txt(
     input_file_path = _write_input_file(python_path, dt)
     # 入力ファイル読み込み
     packages = _read_input_file(input_file_path)
+    # (メンテナンス用)LicenseTxtGenerator自身のリポジトリが対象だった場合は、特殊入力ファイルも読み取る
+    if python_path.resolve() == pathlib.Path(PYTHON_PATH).resolve():
+        meta_packages = _read_input_file(pathlib.Path(META_INPUT_FILE_PATH))
+        packages = packages + meta_packages
     # Requirementファイル読み込み
     requirements = _read_requirement_file(requirement_path)
     # 入力チェック
