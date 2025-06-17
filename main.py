@@ -70,13 +70,13 @@ def _read_input_file(input_file_path: str) -> list[Package]:
 
 
 def _read_requirement_file(requirement_file_path: str) -> list[Requirement]:
-    """リクワイアメントファイルを読み取る。
+    """Requirementファイルを読み取る。
 
     Args:
-        requirement_file_path (str): リクワイアメントファイルまでのパス。
+        requirement_file_path (str): Requirementファイルまでのパス。
 
     Returns:
-        list[Requirement]: リクワイアメントファイルの内容。リクワイアメント情報。
+        list[Requirement]: Requirementファイルの内容。Requirement情報。
     """
     with open(requirement_file_path, mode="r", encoding=ENCODING) as f:
         lines = f.readlines()
@@ -101,11 +101,11 @@ def _is_valid_packages(packges: list[Package], requirements: list[Requirement]) 
         if pkg.has_nan():
             is_valid = False
             lst_msg.append(f"!!!! found nan pkg: {pkg}")
-        # リクワイアメントに含まれていないか
+        # Requirementに含まれていないか
         if pkg.name not in [r.name for r in requirements]:
             is_valid = False
             lst_msg.append(f"!!!! found unrequired pkg: {pkg}")
-    # リクワイアメントを検査
+    # Requirementを検査
     for requirement in requirements:
         # インストール済みパッケージに含まれていないか
         if requirement.name not in [pkg.name for pkg in packges]:
@@ -158,13 +158,13 @@ def gen_license_txt(
     """LICENSE.txtを生成する。
 
     環境にインストールされているPythonパッケージを読み取り、「入力ファイル」として出力する。
-    入力ファイルを改めて読み取り、リクワイアメントファイル(requirements.txt)との整合性をチェックする。
+    入力ファイルを改めて読み取り、Requirementファイル(requirements.txt)との整合性をチェックする。
     入力ファイルの内容に基づき、既定のフォーマットでパッケージのライセンス情報を「出力ファイル」として出力する。
 
     Attributes:
         input_file_path (str): 入力ファイルまでのパス。
         output_file_path (str): 出力ファイルまでのパス。
-        requirement_file_path (str): リクワイアメントファイルまでのパス。
+        requirement_file_path (str): Requirementファイルまでのパス。
         override_input_file (bool): 入力ファイルの上書きフラグ。
         target_licenses (list[str]): 出力対象のライセンス。
 
@@ -175,7 +175,7 @@ def gen_license_txt(
     _write_input_file(input_file_path, override_input_file)
     # 入力ファイル読み込み
     packages = _read_input_file(input_file_path)
-    # リクワイアメントファイル読み込み
+    # Requirementファイル読み込み
     requirements = _read_requirement_file(requirement_file_path)
     # 入力チェック
     [is_valid, msg] = _is_valid_packages(packages, requirements)
