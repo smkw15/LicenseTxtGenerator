@@ -29,7 +29,7 @@ def _write_input_file(python_path: pathlib.Path, dt: datetime.datetime) -> pathl
         pathlib.Path: 入力ファイルまでのパス。
     """
     # 入力ファイルのパスを導出
-    input_file_name = pathlib.Path(INPUT_FILE_PATH).stem + "." + dt.strftime("%Y%m%d_%H%M%S_%f") + ".json"
+    input_file_name = pathlib.Path(INPUT_FILE_PATH).stem + "." + dt.strftime(r"%Y%m%d_%H%M%S_%f") + ".json"
     input_file_path = pathlib.Path(INPUT_FILE_PATH).parent / input_file_name
     # 書き込み関数
     subprocess.run(
@@ -49,7 +49,6 @@ def _read_input_file(input_file_path: pathlib.Path) -> list[Package]:
     Returns:
         list[Package]: 入力ファイルの内容。パッケージ情報。
     """
-    # 入力ファイル読み取り
     with open(input_file_path, mode="r", encoding=ENCODING) as f:
         lst = json.load(f)
         if lst is None:
