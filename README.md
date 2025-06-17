@@ -18,10 +18,10 @@
 
 ```sh
 # 仮想環境構築
-python -m venv env
+python -m venv .env
 
 # 仮想環境起動
-.\env\Scripts\activate
+.\.env\Scripts\activate
 
 # pip更新
 python.exe -m pip install --upgrade pip
@@ -37,7 +37,7 @@ deactivate
 
 ```txt
 ./
-├─📁env
+├─📁.env
 │　├─📁Scripts
 │　│　├─📄activate.bat  👈仮想環境起動バッチ
 │　│　└─📄deactivate.bat  👈仮想環境終了バッチ
