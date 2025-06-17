@@ -5,7 +5,6 @@ import json
 import argparse
 from models import Package, Requirement
 
-
 # 入出力ファイルまでのパス
 META_INPUT_FILE_PATH = "license.meta.json"
 INPUT_FILE_PATH = "license.json"
@@ -22,18 +21,21 @@ TARGET_LICENSES = [MIT, BSD, GPL]
 ENCODING = "utf-8"
 
 
-def _write_input_file(input_file_path: str, override_input_file: bool):
+def _write_input_file(repository: str, input_file_path: str, override_input_file: bool):
     """入力ファイルを作成する。
 
     OSに`pip-licenses`を実行させてパッケージ情報をJSONとして書き出す。
 
     Args:
+        repository (str): リポジトリ。
         input_file_path (str): 入力ファイルまでのパス。
         override_input_file (bool): 入力ファイルの上書きフラグ。
     """
     # 書き込み関数
     def _write():
-        subprocess.run(f"pip-licenses --with-license-file --format=json --output-file={input_file_path}", stdout=subprocess.DEVNULL)
+        subprocess.run(
+            f"pip-licenses --python {repository} --with-license-file --format=json --output-file={input_file_path}",
+            stdout=subprocess.DEVNULL)
         print("created:", input_file_path)
     # ファイルが存在している場合は、強制フラグが立ってる時だけ書き込む
     if os.path.exists(input_file_path):
@@ -150,6 +152,7 @@ def _write_output_file(packages: list[Package], output_file_path: str, target_li
 
 
 def gen_license_txt(
+    repository: str,
     input_file_path: str = INPUT_FILE_PATH,
     output_file_path: str = OUTPUT_FILE_PATH,
     requirement_file_path: str = REQUIREMENTS_FILE_PATH,
@@ -163,6 +166,7 @@ def gen_license_txt(
     入力ファイルの内容に基づき、既定のフォーマットでパッケージのライセンス情報を「出力ファイル」として出力する。
 
     Attributes:
+        repository (str): リポジトリ。対象とする環境。
         input_file_path (str): 入力ファイルまでのパス。
         output_file_path (str): 出力ファイルまでのパス。
         requirement_file_path (str): Requirementファイルまでのパス。
@@ -173,7 +177,7 @@ def gen_license_txt(
         str: LICENSE.txtまでのパス。
     """
     # 入力ファイル出力
-    _write_input_file(input_file_path, override_input_file)
+    _write_input_file(repository, input_file_path, override_input_file)
     # 入力ファイル読み込み
     packages = _read_input_file(input_file_path)
     # Requirementファイル読み込み
@@ -189,6 +193,7 @@ def gen_license_txt(
 def main():
     """メイン処理。"""
     parser = argparse.ArgumentParser()
+    parser.add_argument("--repository", "-r", type=str)
     parser.add_argument("--input", "-i", default=INPUT_FILE_PATH)
     parser.add_argument("--output", "-o", default=OUTPUT_FILE_PATH)
     parser.add_argument("--require", "-r", default=REQUIREMENTS_FILE_PATH)
@@ -196,6 +201,7 @@ def main():
     parser.add_argument("--targets", "-t", nargs="+", default=TARGET_LICENSES)
     args = parser.parse_args()
 
+    print("args.repository", args.repository)
     print("args.input:", args.input)
     print("args.output:", args.output)
     print("args.require:", args.require)
@@ -203,6 +209,7 @@ def main():
     print("args.targets:", args.targets)
 
     gen_license_txt(
+        repository=args.repository,
         input_file_path=args.input,
         output_file_path=args.output,
         requirement_file_path=args.require,
