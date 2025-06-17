@@ -68,7 +68,7 @@ class Package:
         Returns:
             str: 標準出力用文字列。
         """
-        _license_text = self.license_text if len(self.license_text) < 20 else self.license_text[:17] + "..."
+        _license_text = self.license_text if len(self.license_text) < 15 else self.license_text[:12] + "..."
         return f"name={self.name}, version={self.version}, license={self.license}, license_text={_license_text}"
 
 
