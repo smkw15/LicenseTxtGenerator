@@ -1,74 +1,68 @@
 """メインモジュール。"""
-import os
 import subprocess
 import json
 import argparse
+import pathlib
+import datetime
 from models import Package, Requirement
-
-# 入出力ファイルまでのパス
-META_INPUT_FILE_PATH = "license.meta.json"
-INPUT_FILE_PATH = "license.json"
-OUTPUT_FILE_PATH = "LICENSE.txt"
-# 依存パッケージ定義
-REQUIREMENTS_FILE_PATH = "requirements.txt"
-# ライセンス
-MIT = "MIT"
-BSD = "BSD"
-GPL = "GPL"
-# 処理対象ライセンス
-TARGET_LICENSES = [MIT, BSD, GPL]
-# 一般定数
-ENCODING = "utf-8"
+from const import (
+    PYTHON_PATH,
+    INPUT_FILE_PATH,
+    OUTPUT_FILE_PATH,
+    META_INPUT_FILE_PATH,
+    REQUIREMENTS_FILE_PATH,
+    TARGET_LICENSES,
+    ENCODING
+)
 
 
-def _write_input_file(repository: str, input_file_path: str, override_input_file: bool):
+def _write_input_file(python_path: pathlib.Path, dt: datetime.datetime) -> pathlib.Path:
     """入力ファイルを作成する。
 
     OSに`pip-licenses`を実行させてパッケージ情報をJSONとして書き出す。
 
     Args:
-        repository (str): リポジトリ。
-        input_file_path (str): 入力ファイルまでのパス。
-        override_input_file (bool): 入力ファイルの上書きフラグ。
+        python_path (pathlib.Path): 解析対象のPythonまでのパス。
+        dt (datetime.datetime): 作成日時。
+
+    Returns:
+        pathlib.Path: 入力ファイルまでのパス。
     """
+    # 入力ファイルのパスを導出
+    input_file_name = pathlib.Path(INPUT_FILE_PATH).stem + "." + dt.strftime("%Y%m%d_%H%M%S_%f") + ".json"
+    input_file_path = pathlib.Path(INPUT_FILE_PATH).parent / input_file_name
     # 書き込み関数
-    def _write():
-        subprocess.run(
-            f"pip-licenses --python {repository} --with-license-file --format=json --output-file={input_file_path}",
-            stdout=subprocess.DEVNULL)
-        print("created:", input_file_path)
-    # ファイルが存在している場合は、強制フラグが立ってる時だけ書き込む
-    if os.path.exists(input_file_path):
-        if override_input_file:
-            os.remove(input_file_path)
-            print("removed input file:", input_file_path)
-            _write()
-    else:
-        _write()
+    subprocess.run(
+        f"pip-licenses --python={python_path} --with-system --with-license-file --format=json --output-file={input_file_path.resolve()}",
+        stdout=subprocess.DEVNULL)
+    print("python_path:", python_path)
+    print("input_base_name:", input_file_path)
+    return input_file_path
 
 
-def _read_input_file(input_file_path: str) -> list[Package]:
+def _read_input_file(input_file_path: pathlib.Path) -> list[Package]:
     """入力ファイルを読み取る。
 
     Args:
-        input_file_path (str): 入力ファイルまでのパス。
+        input_file_path (pathlib.Path): 入力ファイルまでのパス。
 
     Returns:
-        list[PackageInfo]: 入力ファイルの内容。パッケージ情報。
+        list[Package]: 入力ファイルの内容。パッケージ情報。
     """
     # 入力ファイル読み取り
-    with open(INPUT_FILE_PATH, mode="r", encoding=ENCODING) as f:
+    with open(input_file_path, mode="r", encoding=ENCODING) as f:
         lst = json.load(f)
         if lst is None:
             lst = []
         print("load input file:", input_file_path)
-    # `pip-licenses`関係のパッケージは入力ファイルに出力されないので特殊扱いのファイルから読み取る
-    with open(META_INPUT_FILE_PATH, mode="r", encoding=ENCODING) as f:
-        lst_meta = json.load(f)
-        if lst_meta is None:
-            lst_meta = []
-        print("load meta input file:", META_INPUT_FILE_PATH)
-    lst = lst + lst_meta
+    # NOTE: メンテナンス用
+    # このリポジトリを対象にしている場合は、メンテナンス用のJSONを読み取る
+    if pathlib.Path(INPUT_FILE_PATH) == pathlib.Path(input_file_path):
+        with open(META_INPUT_FILE_PATH, mode="r", encoding=ENCODING) as f:
+            meta_lst = json.load(f)
+            if meta_lst is None:
+                meta_lst = []
+            lst = lst + meta_lst
     return [Package.from_dict(d) for d in lst]
 
 
@@ -117,19 +111,22 @@ def _is_valid_packages(packges: list[Package], requirements: list[Requirement]) 
     return is_valid, '\n'.join(lst_msg)
 
 
-def _write_output_file(packages: list[Package], output_file_path: str, target_licenses: list[str]):
+def _write_output_file(packages: list[Package], target_licenses: list[str], dt: datetime.datetime):
     """出力ファイル書き込み。
 
     Args:
         packages (list[PackageInfo]): 書き込み対象のパッケージ情報。
-        output_file_path (str): 出力ファイルまでのパス。
         target_licenses (lost[str]): 書き込み対象のライセンス。
+        dt (datetime.datetime): 作成日時。
     """
+    # 出力ファイルまでのパスを導出
+    output_file_name = pathlib.Path(OUTPUT_FILE_PATH).stem + "." + dt.strftime("%Y%m%d_%H%M%S_%f") + ".txt"
+    output_file_path = pathlib.Path(OUTPUT_FILE_PATH).parent / output_file_name
     # 存在している場合は削除
-    if os.path.exists(output_file_path):
-        os.remove(output_file_path)
+    if output_file_path.exists():
+        output_file_path.unlink(missing_ok=True)
     # 書き込み
-    with open(output_file_path, mode="w", encoding=ENCODING) as f:
+    with open(output_file_path.resolve(), mode="w", encoding=ENCODING) as f:
         for target_license in target_licenses:
             # 書き込み対象を抽出
             _pacakges = [pkg for pkg in packages if target_license in pkg.license]
@@ -148,15 +145,12 @@ def _write_output_file(packages: list[Package], output_file_path: str, target_li
                 # 最終データ以外は区切り線を出力
                 if i != len(_pacakges) - 1:
                     f.write("-" * 80 + "\n")
-    print("created output file:", OUTPUT_FILE_PATH)
+    print("created output file:", output_file_path)
 
 
 def gen_license_txt(
-    repository: str,
-    input_file_path: str = INPUT_FILE_PATH,
-    output_file_path: str = OUTPUT_FILE_PATH,
-    requirement_file_path: str = REQUIREMENTS_FILE_PATH,
-    override_input_file: bool = False,
+    python_path: pathlib.Path,
+    requirement_path: pathlib.Path,
     target_licenses: list[str] = TARGET_LICENSES
 ) -> str:
     """LICENSE.txtを生成する。
@@ -166,55 +160,43 @@ def gen_license_txt(
     入力ファイルの内容に基づき、既定のフォーマットでパッケージのライセンス情報を「出力ファイル」として出力する。
 
     Attributes:
-        repository (str): リポジトリ。対象とする環境。
-        input_file_path (str): 入力ファイルまでのパス。
-        output_file_path (str): 出力ファイルまでのパス。
-        requirement_file_path (str): Requirementファイルまでのパス。
-        override_input_file (bool): 入力ファイルの上書きフラグ。
+        python_path (pathlib.Path): 解析対象とするPythonまでのパス。
+        requirement_path (pathlib.Path): Requirementファイルまでのパス。
         target_licenses (list[str]): 出力対象のライセンス。
 
     Returns:
         str: LICENSE.txtまでのパス。
     """
+    # 作成日時
+    dt = datetime.datetime.now()
     # 入力ファイル出力
-    _write_input_file(repository, input_file_path, override_input_file)
+    input_file_path = _write_input_file(python_path, dt)
     # 入力ファイル読み込み
     packages = _read_input_file(input_file_path)
     # Requirementファイル読み込み
-    requirements = _read_requirement_file(requirement_file_path)
+    requirements = _read_requirement_file(requirement_path)
     # 入力チェック
     [is_valid, msg] = _is_valid_packages(packages, requirements)
     if not is_valid:
         print(msg)
     # 対象ライセンスごとに書き込み
-    _write_output_file(packages, output_file_path, target_licenses)
+    _write_output_file(packages, target_licenses, dt)
 
 
 def main():
     """メイン処理。"""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--repository", "-r", type=str)
-    parser.add_argument("--input", "-i", default=INPUT_FILE_PATH)
-    parser.add_argument("--output", "-o", default=OUTPUT_FILE_PATH)
-    parser.add_argument("--require", "-r", default=REQUIREMENTS_FILE_PATH)
-    parser.add_argument("--override_input_file", "-O", action="store_true")
-    parser.add_argument("--targets", "-t", nargs="+", default=TARGET_LICENSES)
+    parser.add_argument("--python", "-p", type=str, default=PYTHON_PATH)
+    parser.add_argument("--requirement", "-r", type=str, default=REQUIREMENTS_FILE_PATH)
+    parser.add_argument("--license", "-l", nargs="+", default=TARGET_LICENSES)
     args = parser.parse_args()
-
-    print("args.repository", args.repository)
-    print("args.input:", args.input)
-    print("args.output:", args.output)
-    print("args.require:", args.require)
-    print("args.override_input_file:", args.override_input_file)
-    print("args.targets:", args.targets)
-
+    print("args.python", args.python)
+    print("args.requirement", args.requirement)
+    print("args.license:", args.license)
     gen_license_txt(
-        repository=args.repository,
-        input_file_path=args.input,
-        output_file_path=args.output,
-        requirement_file_path=args.require,
-        override_input_file=args.override_input_file,
-        target_licenses=args.targets)
+        python_path=pathlib.Path(args.python),
+        requirement_path=pathlib.Path(args.requirement),
+        target_licenses=args.license)
 
 
 if __name__ == "__main__":
