@@ -35,8 +35,8 @@ def _write_input_file(python_path: pathlib.Path, dt: datetime.datetime) -> pathl
     subprocess.run(
         f"pip-licenses --python={python_path} --with-system --with-license-file --format=json --output-file={input_file_path.resolve()}",
         stdout=subprocess.DEVNULL)
-    print("python_path:", python_path)
-    print("input_base_name:", input_file_path)
+    print("load python path:", python_path)
+    print("create input file path:", input_file_path)
     return input_file_path
 
 
