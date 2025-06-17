@@ -15,8 +15,9 @@ REQUIREMENTS_FILE_PATH = "requirements.txt"
 # ライセンス
 MIT = "MIT"
 BSD = "BSD"
+GPL = "GPL"
 # 処理対象ライセンス
-TARGET_LICENSES = [MIT, BSD]
+TARGET_LICENSES = [MIT, BSD, GPL]
 # 一般定数
 ENCODING = "utf-8"
 
